@@ -3,86 +3,7 @@
 #include <string>
 
 #include "NamiGenOptions.h"
-
-static NamiGenType GenTypeToEnum(const std::string& type)
-{
-    static const std::vector<std::string> typeStrings =
-    {
-        std::string("circsin"),
-        std::string("circlin"),
-
-        std::string("linr"),
-        std::string("linl"),
-        std::string("lint"),
-        std::string("linb"),
-
-        std::string("sinr"),
-        std::string("sinl"),
-        std::string("sint"),
-        std::string("sinb"),
-
-        std::string("wavecirc"),
-        std::string("wavehorizontal"),
-        std::string("wavevertical")
-    };
-
-    unsigned int i = 1;
-    for(const std::string& currentType : typeStrings)
-    {
-        if(type == currentType)
-        {
-            return static_cast<NamiGenType>(i);
-        }
-        i++;
-    }
-    return NamiGenType::INVALID;
-}
-
-static NamiGenOut GenOutToEnum(const std::string& out)
-{
-    static const std::vector<std::string> typeStrings =
-    {
-        std::string("grd"),
-        std::string("grdbin")
-    };
-
-    unsigned int i = 1;
-    for(const std::string& currentType : typeStrings)
-    {
-        if(out == currentType)
-        {
-            return static_cast<NamiGenOut>(i);
-        }
-        i++;
-    }
-    return NamiGenOut::INVALID;
-}
-
-static const std::vector<std::string> switches =
-{
-    "-t",
-    "-o",
-    "-lat",
-    "-lon",
-    "-size",
-    "-gap",
-    "-z",
-    "-wall",
-    "-w"
-};
-
-static const std::vector<int> switchArgCounts =
-{
-    1,
-    1,
-    2,
-    2,
-    2,
-    2,
-    2,
-    0,
-    1
-};
+#include "NamiGenFunctions.h"
 
 static void PrintHelp()
 {
@@ -101,16 +22,18 @@ static void PrintHelp()
     std::cout << "\twavecirc\t: Circular wave" << std::endl;
     std::cout << "\twavehorizontal\t: Flat horizontal wave" << std::endl;
     std::cout << "\twavevertical\t: Flat vertical wave" << std::endl;
+    std::cout << "\twaveempty\t: Empty wave" << std::endl;
     std::cout << std::endl;
     std::cout << "-o <type>\t\t: Output type (default \"grd\")" << std::endl;
     std::cout << "\tgrd\t\t: ASCII grd file" << std::endl;
     std::cout << "\tgrdbin\t\t: Binary grd file" << std::endl;
     std::cout << std::endl;
+    std::cout << "-n <name>\t\t: Output file name type (default \"output(_bin).grd\")" << std::endl;
     std::cout << "-lat <X> <Y>\t\t: Latitude values (default 0.0 1.0f)" << std::endl;
     std::cout << "-lon <X> <Y>\t\t: Longitude values (default 0.0 1.0f)" << std::endl;
     std::cout << "-size <X> <Y>\t\t: Grid size (default 256 256)" << std::endl;
-    std::cout << "-gap <Out> <In>\t\t: Logic dependant value (default 64 240)" << std::endl;
-    std::cout << "-z <Min> <Max>\t\t: Min and Max eta (default -50.0f 10.0f)" << std::endl;
+    std::cout << "-gap <Bottom> <Top>\t: Logic dependant value (default 64 240)" << std::endl;
+    std::cout << "-z <Land> <Bottom>\t: Land and Bottom eta (default -10.0f 50.0f)" << std::endl;
     std::cout << "-wall\t\t\t: Puts walls on the borders (default off)" << std::endl;
     std::cout << "-w <width>\t\t: Wall width in terms of grids (default 3pt)" << std::endl;
 }
@@ -120,30 +43,18 @@ static void PrintOptions(const NamiGenOptions& options)
     std::cout << "Lat\t: " << options.latMin << " " << options.latMax << std::endl;
     std::cout << "Lon\t: " << options.lonMin << " " << options.lonMax << std::endl;
     std::cout << "Size\t: " << options.sizeX << " " << options.sizeY << std::endl;
-    std::cout << "Gap\t: " << options.gapOut << " " << options.gapIn << std::endl;
-    std::cout << "Z\t: " << options.zMin << " " << options.zMax << std::endl;
+    std::cout << "Gap\t: " << options.gapBottom << " " << options.gapTop << std::endl;
+    std::cout << "Z\t: " << options.zLand << " " << options.zBottom << std::endl;
     std::cout << "Type\t: " << static_cast<int>(options.type) << std::endl;
     std::cout << "Out\t: " << static_cast<int>(options.output) << std::endl;
     std::cout << "Walls\t: " << ((options.hasWalls) ? std::string("true") : std::string("false")) << std::endl;
     std::cout << "Width\t: " << options.wallWidth << std::endl;
 }
 
-constexpr NamiGenOptions namiOptsDefault = NamiGenOptions
-{
-    0.0, 1.0,
-    0.0, 1.0,
-    256, 256,
-    64, 240,
-    -50.0f, 10.0f,
-    NamiGenOut::GRD,
-    NamiGenType::CIRCULAR_SINUSODIAL,
-    false,
-    3
-};
-
 int main(int argc, const char* argv[])
 {
     NamiGenOptions namiOptions = namiOptsDefault;
+    std::string outputFileName = "output";
     if(argc == 1)
     {
         PrintHelp();
@@ -209,13 +120,13 @@ int main(int argc, const char* argv[])
                         }
                         else if(arg == switches[5]) // -gap
                         {
-                            namiOptions.gapOut = std::stoi(argv[i + 1]);
-                            namiOptions.gapIn = std::stoi(argv[i + 2]);
+                            namiOptions.gapBottom = std::stoi(argv[i + 1]);
+                            namiOptions.gapTop = std::stoi(argv[i + 2]);
                         }
                         else if(arg == switches[6]) // -z
                         {
-                            namiOptions.zMin = std::stof(argv[i + 1]);
-                            namiOptions.zMax = std::stof(argv[i + 2]);
+                            namiOptions.zLand = std::stof(argv[i + 1]);
+                            namiOptions.zBottom = std::stof(argv[i + 2]);
                         }
                         else if(arg == switches[7]) // -wall
                         {
@@ -224,6 +135,10 @@ int main(int argc, const char* argv[])
                         else if(arg == switches[8]) // -w
                         {
                             namiOptions.wallWidth = std::stoi(argv[i + 1]);
+                        }
+                        else if(arg == switches[9])
+                        {
+                            outputFileName = argv[i + 1];
                         }
                         i += switchArgCounts[argId];
                         break;
@@ -237,20 +152,91 @@ int main(int argc, const char* argv[])
                 return 0;
             }
         }
+
+        // Empty
+        std::cout << "Using These Parameters" << std::endl;
         PrintOptions(namiOptions);
+        std::cout << "----------" << std::endl;
 
+        // Allocation and Traversal
+        float min = FLT_MAX;
+        float max = -FLT_MAX;
+        std::vector<float> grdData(namiOptions.sizeX * 
+                                   namiOptions.sizeY);
+        for(int i = 0; i < grdData.size(); i++)
+        {
+            int x = i % namiOptions.sizeX;
+            int y = i / namiOptions.sizeX;
 
+            // Wave Segment
+            switch(namiOptions.type)
+            {
+                case NamiGenType::WAVE_CIRCULAR:
+                case NamiGenType::WAVE_HORIZONTAL:
+                case NamiGenType::WAVE_VERTICAL:
+                case NamiGenType::WAVE_EMPTY:
+                {
+                    grdData[i] = WaveSample(x, y, namiOptions);
+                    min = std::min(grdData[i], min);
+                    max = std::max(grdData[i], max);
+                    continue;
+                }
+            }
+            // Bathy Segment
+            // Wall
+            if(namiOptions.hasWalls &&
+               (x < namiOptions.wallWidth ||
+                x >= (namiOptions.sizeX - namiOptions.wallWidth) ||
+                y < namiOptions.wallWidth || 
+                y >= (namiOptions.sizeY - namiOptions.wallWidth)))
+            {
+                grdData[i] = namiOptions.zLand;
+            }
+            else
+            {
+                switch(namiOptions.type)
+                {
+                    case NamiGenType::CIRCULAR_LINEAR:
+                    case NamiGenType::CIRCULAR_SINUSODIAL:
+                    {
+                        grdData[i] = CircleSample(x, y, namiOptions);
+                        break;
+                    }
+                    case NamiGenType::LINEAR_L:
+                    case NamiGenType::LINEAR_R:
+                    case NamiGenType::LINEAR_T:
+                    case NamiGenType::LINEAR_B:
+                    case NamiGenType::SINUSODIAL_L:
+                    case NamiGenType::SINUSODIAL_R:
+                    case NamiGenType::SINUSODIAL_T:
+                    case NamiGenType::SINUSODIAL_B:
+                    {
+                        grdData[i] = SampleFlat(x, y, namiOptions);
+                        break;
+                    }
+                }
+            }
+            min = std::min(grdData[i], min);
+            max = std::max(grdData[i], max);
+        }
 
-
-
-
-
-
-
-
-
-
-
+        // Generation Complete Now Write
+        if(namiOptions.output == NamiGenOut::GRD)
+        {
+            outputFileName += ".grd";
+            OutGRD(grdData.data(),
+                   namiOptions,
+                   min, max,
+                   outputFileName);
+        }
+        else
+        {
+            outputFileName += "_bin.grd";
+            OutGRDBin(grdData.data(),
+                      namiOptions,
+                      min, max,
+                      outputFileName);
+        }
     }
     return 0;
-}
+}  
