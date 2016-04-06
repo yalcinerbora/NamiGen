@@ -87,11 +87,11 @@ inline static float SampleFlat(int x, int y, const NamiGenOptions& opts)
             break;
         case NamiGenType::LINEAR_T:
         case NamiGenType::SINUSODIAL_T:
-            value = static_cast<float>(opts.sizeY - 1 - y);
+            value = static_cast<float>(y);
             break;
         case NamiGenType::LINEAR_B:
         case NamiGenType::SINUSODIAL_B:
-            value = static_cast<float>(y);
+            value = static_cast<float>(opts.sizeY - 1 - y);            
             break;
     }
     if(value > opts.gapTop)
