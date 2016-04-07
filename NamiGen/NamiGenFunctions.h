@@ -9,6 +9,7 @@
 
 constexpr float NAMI_PI = 3.1415927f;
 constexpr float NAMI_E = 2.7182817f;
+constexpr float LAT_METER = 111699.0f;
 
 static float SecH(float radians);
 static float CircleSampleSinusodial(float distance, const NamiGenOptions& opts);
@@ -147,23 +148,25 @@ inline static float WaveSample(int x, int y, const NamiGenOptions& opts)
     float centerDist;
     float H = std::abs(opts.zLand);
     float d = opts.zBottom;
+    float xFactor = static_cast<float>(opts.lonMax - opts.lonMin) * LAT_METER;
+    float yFactor = static_cast<float>(opts.latMax - opts.latMin) * LAT_METER;
     switch(opts.type)
     {
         case NamiGenType::WAVE_CIRCULAR:
         {
-            float xDist = static_cast<float>(x - opts.gapBottom);
-            float yDist = static_cast<float>(y - opts.gapTop);
+            float xDist = static_cast<float>(x - opts.gapBottom) * xFactor;
+            float yDist = static_cast<float>(y - opts.gapTop) * yFactor;
             centerDist = std::sqrt(xDist * xDist + yDist * yDist);
             break;
         }
         case NamiGenType::WAVE_HORIZONTAL:
         {
-            centerDist = static_cast<float>(y - opts.gapBottom);
+            centerDist = static_cast<float>(y - opts.gapBottom) * yFactor;
             break;
         }
         case NamiGenType::WAVE_VERTICAL:
         {
-            centerDist = static_cast<float>(x - opts.gapBottom);
+            centerDist = static_cast<float>(x - opts.gapBottom) * xFactor;
             break;
         }
         case NamiGenType::WAVE_EMPTY:
