@@ -18,6 +18,8 @@ enum class NamiGenType
     SINUSODIAL_T,
     SINUSODIAL_B,
 
+    DUHIS,
+
     // Waves (using this formulate)
     WAVE_CIRCULAR,
     WAVE_HORIZONTAL,
@@ -43,6 +45,7 @@ struct NamiGenOptions
     NamiGenType type;
     bool hasWalls;
     int wallWidth;
+    float tana;
 };
 
 constexpr NamiGenOptions namiOptsDefault = NamiGenOptions
@@ -55,7 +58,8 @@ constexpr NamiGenOptions namiOptsDefault = NamiGenOptions
     NamiGenOut::GRD,
     NamiGenType::CIRCULAR_SINUSODIAL,
     false,
-    3
+    3,
+    1
 };
 
 static const std::vector<std::string> switches =
@@ -69,7 +73,8 @@ static const std::vector<std::string> switches =
     "-z",
     "-wall",
     "-w",
-    "-n"
+    "-n",
+    "-tana"
 };
 
 static const std::vector<int> switchArgCounts =
@@ -82,6 +87,7 @@ static const std::vector<int> switchArgCounts =
     2,
     2,
     0,
+    1,
     1,
     1
 };
@@ -102,6 +108,8 @@ inline static NamiGenType GenTypeToEnum(const std::string& type)
         std::string("sinl"),
         std::string("sint"),
         std::string("sinb"),
+
+        std::string("duhis"),
 
         std::string("wavecirc"),
         std::string("wavehorizontal"),

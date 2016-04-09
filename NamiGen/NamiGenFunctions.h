@@ -17,6 +17,34 @@ static float CircleSampleLinear(float distance, const NamiGenOptions& opts);
 static float SampleSinusodial(float norm, const NamiGenOptions& opts);
 static float SampleLinear(float norm, const NamiGenOptions& opts);
 
+inline static float SampleDuhis(int x, int y, const NamiGenOptions& opts)
+{
+    float distanceX = static_cast<float>(opts.sizeX - opts.gapTop) * 0.5f;
+    float xFloat = static_cast<float>(x);
+    float distance = 0;
+    if(xFloat < distanceX)
+    {
+        distance = xFloat;
+        distance /= distanceX;
+        distance = 1.0f - distance;
+    }
+    else if(xFloat > distanceX + opts.gapTop)
+    {
+        distance = xFloat - distanceX - opts.gapTop;
+        distance /= distanceX;
+        
+    }
+    else
+    {
+        return opts.zLand;
+    }
+    float bathy = distance * opts.tana;
+    bathy *= (opts.zBottom - opts.zLand);
+    bathy += opts.zLand;
+    bathy = std::min(opts.zBottom, bathy);
+    return bathy;
+}
+
 inline static float CircleSample(int x, int y, const NamiGenOptions& opts)
 {
     // Float casted points
@@ -67,9 +95,10 @@ inline static float CircleSampleLinear(float distance, const NamiGenOptions& opt
     
     // Distance is reversed and in between [0, 1]
     // Sample linearly
-    float bathy = distance;
+    float bathy = distance * opts.tana;
     bathy *= (opts.zBottom - opts.zLand);
     bathy += opts.zLand;
+    bathy = std::min(opts.zBottom, bathy);
     return bathy;
 }
 
@@ -124,9 +153,10 @@ inline static float SampleFlat(int x, int y, const NamiGenOptions& opts)
 
 inline static float SampleLinear(float norm, const NamiGenOptions& opts)
 {
-    float bathy = norm;
+    float bathy = norm * opts.tana;
     bathy *= (opts.zBottom - opts.zLand);
     bathy += opts.zLand;
+    bathy = std::min(opts.zBottom, bathy);
     return bathy;
 }
 

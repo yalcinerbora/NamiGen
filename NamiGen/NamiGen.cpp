@@ -19,6 +19,7 @@ static void PrintHelp()
     std::cout << "\tsinl\t\t: Flat left bathymetry with edges are sinusodial" << std::endl;
     std::cout << "\tsint\t\t: Flat top bathymetry with edges are sinusodial" << std::endl;
     std::cout << "\tsinb\t\t: Flat bottom bathymetry with edges are sinusodial" << std::endl;
+    std::cout << "\tduhis\t\t: Special double wedge" << std::endl;
     std::cout << "\twavecirc\t: Circular wave" << std::endl;
     std::cout << "\twavehorizontal\t: Flat horizontal wave" << std::endl;
     std::cout << "\twavevertical\t: Flat vertical wave" << std::endl;
@@ -36,6 +37,7 @@ static void PrintHelp()
     std::cout << "-z <Land> <Bottom>\t: Land and Bottom eta (default -10.0f 50.0f)" << std::endl;
     std::cout << "-wall\t\t\t: Puts walls on the borders (default off)" << std::endl;
     std::cout << "-w <width>\t\t: Wall width in terms of grids (default 3pt)" << std::endl;
+    std::cout << "-tana <width>\t\t: tangent of the linear slope (default 1, tan(pi/4))" << std::endl;
 }
 
 static void PrintOptions(const NamiGenOptions& options)
@@ -49,6 +51,7 @@ static void PrintOptions(const NamiGenOptions& options)
     std::cout << "Out\t: " << static_cast<int>(options.output) << std::endl;
     std::cout << "Walls\t: " << ((options.hasWalls) ? std::string("true") : std::string("false")) << std::endl;
     std::cout << "Width\t: " << options.wallWidth << std::endl;
+    std::cout << "Tana\t: " << options.tana << std::endl;
 }
 
 int main(int argc, const char* argv[])
@@ -136,9 +139,13 @@ int main(int argc, const char* argv[])
                         {
                             namiOptions.wallWidth = std::stoi(argv[i + 1]);
                         }
-                        else if(arg == switches[9])
+                        else if(arg == switches[9]) // -n
                         {
                             outputFileName = argv[i + 1];
+                        }
+                        else if(arg == switches[10]) // -tana
+                        {
+                            namiOptions.tana = std::stof(argv[i + 1]);
                         }
                         i += switchArgCounts[argId];
                         break;
@@ -184,11 +191,18 @@ int main(int argc, const char* argv[])
             }
             // Bathy Segment
             // Wall
-            if(namiOptions.hasWalls &&
-               (x < namiOptions.wallWidth ||
-                x >= (namiOptions.sizeX - namiOptions.wallWidth) ||
-                y < namiOptions.wallWidth || 
-                y >= (namiOptions.sizeY - namiOptions.wallWidth)))
+            if(namiOptions.type == NamiGenType::DUHIS &&
+               y < namiOptions.wallWidth ||
+               y >= (namiOptions.sizeY - namiOptions.wallWidth))
+            {
+                grdData[i] = namiOptions.zLand;             
+            }
+            else if(namiOptions.type != NamiGenType::DUHIS &&
+                    (namiOptions.hasWalls &&
+                     (x < namiOptions.wallWidth ||
+                      x >= (namiOptions.sizeX - namiOptions.wallWidth) ||
+                      y < namiOptions.wallWidth ||
+                      y >= (namiOptions.sizeY - namiOptions.wallWidth))))
             {
                 grdData[i] = namiOptions.zLand;
             }
@@ -212,6 +226,11 @@ int main(int argc, const char* argv[])
                     case NamiGenType::SINUSODIAL_B:
                     {
                         grdData[i] = SampleFlat(x, y, namiOptions);
+                        break;
+                    }
+                    case NamiGenType::DUHIS:
+                    {
+                        grdData[i] = SampleDuhis(x, y, namiOptions);
                         break;
                     }
                 }
